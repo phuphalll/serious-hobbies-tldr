@@ -6,11 +6,6 @@ echo "🚀 n8n Container Starting..."
 # export TODAY_DATE=$(date +'%Y-%m-%d')
 echo "📅 System Context: Date set to $TODAY_DATE ($TZ)"
 pwd
-echo 'Above is path'
-# cd /opt/n8n/
-pwd
-echo 'below is path'
-ls
 # --- 2. CREDENTIAL HYDRATION ---
 if [ -d "/opt/n8n/credentials" ]; then
     echo "🔑 Importing Credentials..."

@@ -26,11 +26,12 @@ resource "google_project_iam_member" "sa_roles" {
     "roles/logging.logWriter",
     "roles/artifactregistry.reader",
     "roles/secretmanager.secretAccessor",
-    "roles/storage.objectViewer" # To read .env from GCS
+    "roles/storage.objectViewer", # To read .env from GCS
+    "roles/run.invoker" # Required for the Scheduler to invoke the job
   ])
   project = var.project_id
   role    = each.key
-  member  = "serviceAccount:${google_service_account.n8n_sa.email}"
+  member  = "serviceAccount:${data.google_service_account.existing_n8n_sa.email}"
 }
 
 # ---------------------------------------------------------
@@ -153,8 +154,8 @@ resource "google_cloud_run_v2_job" "n8n_job" {
 resource "google_cloud_scheduler_job" "job_trigger" {
   name             = "trigger-n8n-daily"
   description      = "Triggers the n8n daily TLDR batch job"
-  schedule         = "0 6 * * *"
-  time_zone        = "Asia/Bangkok" # Adjust to your timezone
+  schedule         = var.cron_schedule
+  time_zone        = var.time_zone
   attempt_deadline = "320s"
 
   http_target {
