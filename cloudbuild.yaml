@@ -1,34 +1,60 @@
 steps:
-  # 1. Build the Docker image
+  # ==============================================================================
+  # 1. BUILD & CACHE
+  # ==============================================================================
+  # We use the 'docker' builder.
+  # Best Practice: We pull 'latest' first to use as a cache layer. 
+  # This speeds up builds significantly by reusing existing layers.
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker pull ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:latest || exit 0
+
+  # ==============================================================================
+  # 2. BUILD THE IMAGE
+  # ==============================================================================
+  # We tag with BOTH the Commit SHA (for versioning) and 'latest' (for convenience).
+  # We use --cache-from to use the image we just pulled.
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/n8n-batch-repo/n8n-custom:$COMMIT_SHA'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/n8n-batch-repo/n8n-custom:latest'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:latest'
+      - '--cache-from'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:latest'
       - '.'
 
-  # 2. Push the image to Artifact Registry
+  # ==============================================================================
+  # 3. PUSH IMAGES
+  # ==============================================================================
+  # Push both tags.
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/n8n-batch-repo/n8n-custom:$COMMIT_SHA'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
   
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/n8n-batch-repo/n8n-custom:latest'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:latest'
 
-  # 3. Update the Cloud Run Job to use the new image
+  # ==============================================================================
+  # 4. DEPLOY TO CLOUD RUN JOB
+  # ==============================================================================
+  # Update the job to use the specific SHA we just built.
+  # Best Practice: Always deploy the SHA, not 'latest', so you know exactly what is running.
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
+    entrypoint: 'gcloud'
     args:
       - 'run'
       - 'jobs'
       - 'update'
-      - 'n8n-daily-tldr'
-      - '--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/n8n-batch-repo/n8n-custom:$COMMIT_SHA'
+      - '${_JOB_NAME}'
+      - '--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
       - '--region=${_REGION}'
 
 substitutions:
