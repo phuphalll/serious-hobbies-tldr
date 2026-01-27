@@ -40,7 +40,7 @@ elif [ "$1" = "execute-daily" ] || [ "$1" = "execute-curl" ]; then
     TARGET_URL=""
     if [ "$1" = "execute-daily" ]; then
         echo "⚡ Mode: Batch Execution (Daily TLDR)"
-        TARGET_URL="http://127.0.0.1:5678/webhook/batch"
+        TARGET_URL="http://127.0.0.1:5678/webhook/test"
     else
         echo "⚡ Mode: Curl Test"
         TARGET_URL="http://127.0.0.1:5678/webhook/test"

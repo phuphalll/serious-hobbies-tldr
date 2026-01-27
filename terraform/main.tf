@@ -2,7 +2,22 @@ provider "google" {
   project = var.project_id
   region  = var.region
 }
+# ---------------------------------------------------------
+# 0. ENABLE GOOGLE CLOUD APIS
+# ---------------------------------------------------------
+resource "google_project_service" "required_apis" {
+  for_each = toset([
+    "run.googleapis.com",              # Cloud Run
+    "cloudscheduler.googleapis.com",   # Cloud Scheduler (You will likely need this next)
+    "artifactregistry.googleapis.com", # Artifact Registry
+    "secretmanager.googleapis.com",    # Secret Manager
+    "iam.googleapis.com"               # IAM
+  ])
 
+  project            = var.project_id
+  service            = each.key
+  disable_on_destroy = false # IMPORTANT: Prevents accidental API disablement on destroy
+}
 # ---------------------------------------------------------
 # 1. ARTIFACT REGISTRY (Store Docker Images)
 # ---------------------------------------------------------

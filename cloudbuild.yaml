@@ -32,4 +32,6 @@ steps:
       - '--region=${_REGION}'
 
 substitutions:
-  _REGION: us-central1 # Default, override in trigger
+  _REGION: asia
+options:
+  logging: CLOUD_LOGGING_ONLY
