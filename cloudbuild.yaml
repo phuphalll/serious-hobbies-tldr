@@ -36,3 +36,5 @@ substitutions:
   _REPO_NAME: n8n-batch-repo     
   _JOB_NAME: n8n-daily-tldr      
   _IMAGE_NAME: n8n-custom       
+options:
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
