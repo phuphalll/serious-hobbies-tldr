@@ -1,0 +1,7 @@
+#!/bin/sh
+# Automatically export workflows from running n8n container before committing
+# if docker ps | grep -q n8n_tldr_runner; then
+#   echo "🤖 Auto-exporting n8n workflows..."
+#   docker exec n8n_tldr_runner n8n export:workflow --all --output=/opt/n8n/workflows/
+#   git add workflows/*.json
+# fi

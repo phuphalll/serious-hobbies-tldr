@@ -1,0 +1,35 @@
+steps:
+  # 1. Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/n8n-batch-repo/n8n-custom:$COMMIT_SHA'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/n8n-batch-repo/n8n-custom:latest'
+      - '.'
+
+  # 2. Push the image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/n8n-batch-repo/n8n-custom:$COMMIT_SHA'
+  
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/n8n-batch-repo/n8n-custom:latest'
+
+  # 3. Update the Cloud Run Job to use the new image
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'jobs'
+      - 'update'
+      - 'n8n-daily-tldr'
+      - '--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/n8n-batch-repo/n8n-custom:$COMMIT_SHA'
+      - '--region=${_REGION}'
+
+substitutions:
+  _REGION: us-central1 # Default, override in trigger

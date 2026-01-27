@@ -1,0 +1,29 @@
+# Ignore local data and database
+n8n-data/
+node_modules/
+.n8n/
+
+# Ignore sensitive environment variables
+.env
+.env.production
+.env.local
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore all credentials files but allow the folder
+credentials/*
+!credentials/.gitkeep
+
+# Ignore log files
+*.log
+npm-debug.log*
+
+# Ignore build artifacts
+dist/
+build/
+coverage/
+
+
+*ptest*
