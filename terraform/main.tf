@@ -16,9 +16,8 @@ resource "google_artifact_registry_repository" "repo" {
 # ---------------------------------------------------------
 # 2. IAM & SECURITY (Least Privilege Service Account)
 # ---------------------------------------------------------
-resource "google_service_account" "n8n_sa" {
-  account_id   = "n8n-batch-runner"
-  display_name = "n8n Batch Job Service Account"
+data "google_service_account" "existing_n8n_sa" {
+  account_id = var.service_account_email
 }
 
 # Grant permissions to pull images, read secrets, and write logs
@@ -61,12 +60,12 @@ resource "google_storage_bucket" "env_bucket" {
 # 5. CLOUD RUN JOB
 # ---------------------------------------------------------
 resource "google_cloud_run_v2_job" "n8n_job" {
-  name     = "n8n-daily-tldr"
+  name     = var.job_name
   location = var.region
 
   template {
     template {
-      service_account = google_service_account.n8n_sa.email
+      service_account = var.service_account_email
       
       containers {
         # Image will be built by Cloud Build
@@ -163,7 +162,7 @@ resource "google_cloud_scheduler_job" "job_trigger" {
     uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.n8n_job.name}:run"
 
     oauth_token {
-      service_account_email = google_service_account.n8n_sa.email
+      service_account_email = var.service_account_email
     }
   }
 }
