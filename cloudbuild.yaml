@@ -32,9 +32,7 @@ steps:
       - '--region=${_REGION}'
 
 substitutions:
-  _REGION: asia-southeast1       # MATCHES your Terraform variable
-  _REPO_NAME: n8n-batch-repo     # MATCHES your Artifact Registry name
-  _JOB_NAME: n8n-daily-tldr      # MATCHES your Cloud Run Job name
-  _IMAGE_NAME: n8n-custom        # Your preferred image name
-options:
-  logging: CLOUD_LOGGING_ONLY
+  _REGION: asia-southeast1       
+  _REPO_NAME: n8n-batch-repo     
+  _JOB_NAME: n8n-daily-tldr      
+  _IMAGE_NAME: n8n-custom       
