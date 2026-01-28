@@ -1,4 +1,4 @@
-FROM  asia-southeast1-docker.pkg.dev/serious-hobbies/n8n-python-base/base:v1
+FROM --platform=linux/amd64 asia-southeast1-docker.pkg.dev/serious-hobbies/n8n-python-base/base:v1
 
 ENV TZ=Asia/Bangkok
 
