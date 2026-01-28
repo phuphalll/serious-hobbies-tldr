@@ -1,5 +1,5 @@
 # Use the official stable version
-FROM n8nio/n8n:latest
+FROM n8nio/n8n:2.6.1
 
 # Switch to root to manage permissions and install extra tools if needed
 USER root
