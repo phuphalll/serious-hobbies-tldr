@@ -9,10 +9,10 @@ USER root
 # n8n v2+ images are "distroless" and lack apk. We must copy it from Alpine.
 # 🔒 MATCHING ALPINE VERSION: n8n:latest is on Alpine 3.22
 # ---------------------------------------------------------------------------
-    COPY --from=docker.io/library/alpine:3.22 /sbin/apk /sbin/apk
-    COPY --from=docker.io/library/alpine:3.22 /lib/libapk.so* /lib/
-    COPY --from=docker.io/library/alpine:3.22 /usr/share/apk /usr/share/apk
-    COPY --from=docker.io/library/alpine:3.22 /etc/apk /etc/apk
+    COPY --from=docker.io/library/alpine:3.21 /sbin/apk /sbin/apk
+    COPY --from=docker.io/library/alpine:3.21 /lib/libapk.so* /lib/
+    COPY --from=docker.io/library/alpine:3.21 /usr/share/apk /usr/share/apk
+    COPY --from=docker.io/library/alpine:3.21 /etc/apk /etc/apk
 # ----------------------------------------------------
 # 👇 NEW: Install Python 3 and PIP (Required for Code Node)
 RUN apk add --update --no-cache \
