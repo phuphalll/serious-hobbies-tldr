@@ -78,7 +78,6 @@ resource "google_storage_bucket" "env_bucket" {
 resource "google_cloud_run_v2_job" "n8n_job" {
   name     = var.job_name
   location = var.region
-
   template {
     template {
       service_account = var.service_account_email
@@ -115,7 +114,7 @@ resource "google_cloud_run_v2_job" "n8n_job" {
         # "set -a" automatically exports all variables in the sourced file
         command = ["/bin/sh", "-c"]
         args    = [
-          "if [ -f /mnt/gcs/.env ]; then echo 'Loading .env from GCS...'; set -a; . /mnt/gcs/.env; set +a; fi; /opt/n8n/docker-entrypoint.sh execute-daily"
+          "if [ -f /mnt/gcs/env_1 ]; then echo 'Loading env_1 from GCS...'; set -a; . /mnt/gcs/env_1; set +a; fi; /opt/n8n/docker-entrypoint.sh execute-daily"
         ]
         
         # Ensure standard n8n encryption key is present if not in .env

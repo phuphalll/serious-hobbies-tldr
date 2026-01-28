@@ -8,13 +8,20 @@ COPY --from=builder /sbin/apk /sbin/apk
 COPY --from=builder /lib/libapk.so* /lib/
 COPY --from=builder /usr/share/apk /usr/share/apk
 COPY --from=builder /etc/apk /etc/apk
-# COPY --from=docker.io/library/alpine:3.22 /sbin/apk /sbin/apk
-# COPY --from=docker.io/library/alpine:3.22 /lib/libapk.so* /lib/
-# COPY --from=docker.io/library/alpine:3.22 /usr/share/apk /usr/share/apk
-# COPY --from=docker.io/library/alpine:3.22 /etc/apk /etc/apk
 
 # Install Python & PIP immediately
-RUN apk add --update --no-cache python3 py3-pip curl jq && rm -rf /var/cache/apk/*
+RUN apk add --update --no-cache \
+    python3 \
+    py3-pip \
+    curl \
+    jq \
+    busybox \
+    busybox-extras \
+    && rm -rf /var/cache/apk/*
+
+# Create symlinks so you can type 'ls' instead of 'busybox ls'
+RUN busybox --install -s /bin || true
+
 ENV TZ=Asia/Bangkok
 # Setup Python VENV immediately
 ENV VIRTUAL_ENV=/opt/venv

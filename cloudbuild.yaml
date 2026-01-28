@@ -17,29 +17,39 @@ steps:
   # ==============================================================================
   # We tag with BOTH the Commit SHA (for versioning) and 'latest' (for convenience).
   # We use --cache-from to use the image we just pulled.
-  - name: 'gcr.io/cloud-builders/docker'
+  # - name: 'gcr.io/cloud-builders/docker'
+  # - name: 'docker:27' 
+  #   args:
+  #     - 'build'
+  #     - '--network=cloudbuild'
+  #     - '--platform=linux/amd64' 
+  #     - '--no-cache'
+  #     - '-t'
+  #     - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
+  #     - '-t'
+  #     - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:latest'
+  #     - '.'
+  - name: 'gcr.io/kaniko-project/executor:latest'
     args:
-      - 'build'
-      - '--no-cache'
-      - '-t'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
-      - '-t'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:latest'
-      - '.'
-
+      - '--destination=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
+      - '--destination=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:latest'
+      - '--dockerfile=Dockerfile'
+      - '--context=dir://.'
+      - '--cache=true'
+      - '--cache-ttl=24h'
   # ==============================================================================
   # 3. PUSH IMAGES
   # ==============================================================================
   # Push both tags.
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
+  # - name: 'gcr.io/cloud-builders/docker'
+  #   args:
+  #     - 'push'
+  #     - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
   
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:latest'
+  # - name: 'gcr.io/cloud-builders/docker'
+  #   args:
+  #     - 'push'
+  #     - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:latest'
 
   # ==============================================================================
   # 4. DEPLOY TO CLOUD RUN JOB
