@@ -21,7 +21,7 @@ steps:
     args:
       - 'build'
       - '--no-cache'
-      - '-t
+      - '-t'
       - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
       - '-t'
       - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_IMAGE_NAME}:latest'
