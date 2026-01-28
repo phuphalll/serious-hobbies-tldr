@@ -69,7 +69,7 @@ elif [ "$1" = "execute-daily" ] || [ "$1" = "execute-curl" ]; then
 
     echo "🔥 Triggering Webhook: $TARGET_URL"
     # Run Curl with embedded date payload
-    sleep 4
+    sleep 20
     http_code=$(curl -m 3600 -w "%{http_code}" -o /home/node/response.json --fail-with-body  \
         "$TARGET_URL")
     echo "🔍 Status Code: $http_code"
