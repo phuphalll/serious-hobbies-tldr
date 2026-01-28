@@ -1,3 +1,32 @@
+FROM  asia-southeast1-docker.pkg.dev/serious-hobbies/n8n-python-base/base:v1
+
+ENV TZ=Asia/Bangkok
+
+# Create folders for your local imports
+RUN mkdir -p /opt/n8n/workflows /opt/n8n/credentials && chown -R node:node /opt/n8n
+
+# Copy workflows into the image
+COPY --chown=node:node ./workflows /opt/n8n/workflows
+
+# Add entrypoint script
+COPY --chown=node:node script/docker-entrypoint.sh /opt/n8n/docker-entrypoint.sh
+RUN chmod +x /opt/n8n/docker-entrypoint.sh
+
+COPY --chown=node:node script/run-batch.sh /opt/n8n/run-batch.sh
+RUN chmod +x /opt/n8n/run-batch.sh
+
+RUN printf "" > ./response.json && chown node:node ./response.json
+RUN printf "" > /home/node/.n8n/n8n.log && chown node:node /home/node/.n8n/n8n.log
+# Switch back to the non-root 'node' user for security
+USER node
+
+# Set environment variables for the n8n CLI
+ENV N8N_PORT=5678
+ENV NODE_ENV=production
+ENV N8N_PYTHON_INTERPRETER=$VIRTUAL_ENV/bin/python3
+# Set default entrypoint to our custom script
+ENTRYPOINT ["/opt/n8n/docker-entrypoint.sh"]
+
 # # Use the official stable version
 # FROM n8nio/n8n:2.6.1
 
@@ -31,31 +60,3 @@
 # RUN python3 -m venv $VIRTUAL_ENV
 # ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 # RUN pip install --upgrade pip --no-cache-dir
-FROM  asia-southeast1-docker.pkg.dev/serious-hobbies/n8n-python-base/base:v1
-
-ENV TZ=Asia/Bangkok
-
-# Create folders for your local imports
-RUN mkdir -p /opt/n8n/workflows /opt/n8n/credentials && chown -R node:node /opt/n8n
-
-# Copy workflows into the image
-COPY --chown=node:node ./workflows /opt/n8n/workflows
-
-# Add entrypoint script
-COPY --chown=node:node script/docker-entrypoint.sh /opt/n8n/docker-entrypoint.sh
-RUN chmod +x /opt/n8n/docker-entrypoint.sh
-
-COPY --chown=node:node script/run-batch.sh /opt/n8n/run-batch.sh
-RUN chmod +x /opt/n8n/run-batch.sh
-
-RUN printf "" > ./response.json && chown node:node ./response.json
-RUN printf "" > /home/node/.n8n/n8n.log && chown node:node /home/node/.n8n/n8n.log
-# Switch back to the non-root 'node' user for security
-USER node
-
-# Set environment variables for the n8n CLI
-ENV N8N_PORT=5678
-ENV NODE_ENV=production
-ENV N8N_PYTHON_INTERPRETER=$VIRTUAL_ENV/bin/python3
-# Set default entrypoint to our custom script
-ENTRYPOINT ["/opt/n8n/docker-entrypoint.sh"]

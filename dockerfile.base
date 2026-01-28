@@ -1,16 +1,21 @@
+FROM --platform=linux/amd64 docker.io/library/alpine:3.22 AS builder
 # Dockerfile.base
-FROM n8nio/n8n:2.6.1
+FROM --platform=linux/amd64 n8nio/n8n:2.6.1
 USER root
 
 # The "APK" Hack
-COPY --from=docker.io/library/alpine:3.22 /sbin/apk /sbin/apk
-COPY --from=docker.io/library/alpine:3.22 /lib/libapk.so* /lib/
-COPY --from=docker.io/library/alpine:3.22 /usr/share/apk /usr/share/apk
-COPY --from=docker.io/library/alpine:3.22 /etc/apk /etc/apk
+COPY --from=builder /sbin/apk /sbin/apk
+COPY --from=builder /lib/libapk.so* /lib/
+COPY --from=builder /usr/share/apk /usr/share/apk
+COPY --from=builder /etc/apk /etc/apk
+# COPY --from=docker.io/library/alpine:3.22 /sbin/apk /sbin/apk
+# COPY --from=docker.io/library/alpine:3.22 /lib/libapk.so* /lib/
+# COPY --from=docker.io/library/alpine:3.22 /usr/share/apk /usr/share/apk
+# COPY --from=docker.io/library/alpine:3.22 /etc/apk /etc/apk
 
 # Install Python & PIP immediately
 RUN apk add --update --no-cache python3 py3-pip curl jq && rm -rf /var/cache/apk/*
-
+ENV TZ=Asia/Bangkok
 # Setup Python VENV immediately
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
