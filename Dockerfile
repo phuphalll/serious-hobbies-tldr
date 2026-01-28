@@ -1,36 +1,39 @@
-# Use the official stable version
-FROM n8nio/n8n:2.6.1
+# # Use the official stable version
+# FROM n8nio/n8n:2.6.1
 
-# Switch to root to manage permissions and install extra tools if needed
-USER root
+# # Switch to root to manage permissions and install extra tools if needed
+# USER root
 
-# ---------------------------------------------------------------------------
-# 🔧 CRITICAL FIX: Restore 'apk' package manager
-# n8n v2+ images are "distroless" and lack apk. We must copy it from Alpine.
-# 🔒 MATCHING ALPINE VERSION: n8n:latest is on Alpine 3.22
-# ---------------------------------------------------------------------------
-    COPY --from=docker.io/library/alpine:3.21 /sbin/apk /sbin/apk
-    COPY --from=docker.io/library/alpine:3.21 /lib/libapk.so* /lib/
-    COPY --from=docker.io/library/alpine:3.21 /usr/share/apk /usr/share/apk
-    COPY --from=docker.io/library/alpine:3.21 /etc/apk /etc/apk
-# ----------------------------------------------------
-# 👇 NEW: Install Python 3 and PIP (Required for Code Node)
-RUN apk add --update --no-cache \
-    python3 \
-    py3-pip \
-    curl \
-    jq \
-    && rm -rf /var/cache/apk/*
-# ----------------------------------------------------
+# # ---------------------------------------------------------------------------
+# # 🔧 CRITICAL FIX: Restore 'apk' package manager
+# # n8n v2+ images are "distroless" and lack apk. We must copy it from Alpine.
+# # 🔒 MATCHING ALPINE VERSION: n8n:latest is on Alpine 3.22
+# # ---------------------------------------------------------------------------
+#     COPY --from=docker.io/library/alpine:3.22 /sbin/apk /sbin/apk
+#     COPY --from=docker.io/library/alpine:3.22 /lib/libapk.so* /lib/
+#     COPY --from=docker.io/library/alpine:3.22 /usr/share/apk /usr/share/apk
+#     COPY --from=docker.io/library/alpine:3.22 /etc/apk /etc/apk
+# # ----------------------------------------------------
+# # 👇 NEW: Install Python 3 and PIP (Required for Code Node)
+# RUN apk add --update --no-cache \
+#     python3 \
+#     py3-pip \
+#     curl \
+#     jq \
+#     && rm -rf /var/cache/apk/*
+# # ----------------------------------------------------
+
+# ENV TZ=Asia/Bangkok
+
+# # 4. (Optional) Setup a Virtual Environment for Python
+# # Best practice to avoid breaking system packages
+# ENV VIRTUAL_ENV=/opt/venv
+# RUN python3 -m venv $VIRTUAL_ENV
+# ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+# RUN pip install --upgrade pip --no-cache-dir
+FROM  asia-southeast1-docker.pkg.dev/serious-hobbies/n8n-python-base/base:v1
 
 ENV TZ=Asia/Bangkok
-
-# 4. (Optional) Setup a Virtual Environment for Python
-# Best practice to avoid breaking system packages
-ENV VIRTUAL_ENV=/opt/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-RUN pip install --upgrade pip --no-cache-dir
 
 # Create folders for your local imports
 RUN mkdir -p /opt/n8n/workflows /opt/n8n/credentials && chown -R node:node /opt/n8n
