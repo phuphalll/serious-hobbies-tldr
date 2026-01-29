@@ -25,11 +25,33 @@ Each pillar undergoes a rigorous two-pass process:
 ## 🏗 Architecture
 
 - **Engine**: n8n (Headless/CLI mode)
-- **Compute**: Google Cloud Run (Ephemeral containers)
-- **Scheduler**: Google Cloud Scheduler (Cron: `0 8 * * *` Asia/Bangkok)
+- **Compute**: Google Cloud Run Jobs (Ephemeral containers)
+- **Base Image**: Custom Alpine 3.22 + Python 3 + APK (`dockerfile.base`)
+- **Scheduler**: Google Cloud Scheduler (Cron: `0 6 * * *` Asia/Bangkok)
 - **Storage**: Supabase Storage (HTML Artifacts)
-- **Secrets**: Cloud Run Environment Variables
-- **Prompts**: Managed via `PROMPTS.md` (Single Source of Truth)
+- **Secrets**: Cloud Run Environment Variables & Secret Manager
+
+### Container Strategy
+We use a **multi-stage image approach** to overcome the limitations of the default "distroless" n8n image:
+
+1.  **Base Image (`dockerfile.base`)**: Extends `n8nio/n8n:2.6.1` by re-injecting Alpine's `apk` package manager and installing Python 3. This is pushed to Artifact Registry first.
+2.  **App Image (`Dockerfile`)**: Builds FROM the custom base image, copying in:
+    - `./workflows`: The JSON workflow definitions.
+    - `./script`: The entrypoint logic (`docker-entrypoint.sh`).
+
+## 🔄 Execution Logic (`docker-entrypoint.sh`)
+
+The container supports three modes via the entrypoint:
+
+1.  **`execute-server`** (Default): Starts standard n8n server (UI available).
+2.  **`execute-daily`** (Batch):
+    - Sets `TODAY_DATE`.
+    - Imports credentials from `/opt/n8n/credentials`.
+    - Starts n8n in background.
+    - Waits for healthcheck.
+    - Triggers `POST http://localhost:5678/webhook/batch`.
+    - Captures result, shuts down n8n, and exits with 0 (success) or 1 (fail).
+3.  **`execute-curl`** (Test): Similar to daily but triggers a test webhook.
 
 ## 🛠 Local Development & Testing
 
@@ -39,66 +61,124 @@ Copy the example environment file and fill in your keys (Supabase, Gemini, Encry
 cp .env.example .env
 ```
 
-### 2. Run Locally (Batch Mode)
-Simulate the exact production batch job behavior:
+### 2. Build App Image
 ```bash
-docker compose run --rm n8n-batch
+docker build -t my-n8n-custom .
 ```
-This will:
-1. Start the container.
-2. Import workflows and credentials from local folders.
-3. Execute the "Daily Vibe" workflow.
-4. Exit.
 
-### 3. Run Locally (Editor Mode)
+### 3. Run Locally (Batch Mode)
+Simulate the Cloud Run Job:
+```bash
+docker run --rm \
+    --name n8n_daily_job \
+    --env-file .env \
+    -v "$(pwd)/credentials":/opt/n8n/credentials \
+    -v "$(pwd)/workflows":/opt/n8n/workflows \
+    -v "$(pwd)/n8n-data":/home/node/.n8n \
+    my-n8n-custom execute-daily
+```
+
+### 4. Run Locally (Test Mode)
+Test the webhook connectivity:
+```bash
+docker run --rm \
+    --name n8n_curl_test \
+    --env-file .env \
+    -v "$(pwd)/credentials":/opt/n8n/credentials \
+    my-n8n-custom execute-curl
+```
+
+### 5. Run Locally (Editor Mode)
 To edit workflows via the UI:
 ```bash
-docker compose up -d n8n
+docker run -d \
+    --name n8n_server \
+    -p 5678:5678 \
+    --env-file .env \
+    -v "$(pwd)/credentials":/opt/n8n/credentials \
+    -v "$(pwd)/workflows":/opt/n8n/workflows \
+    -v "$(pwd)/n8n-data":/home/node/.n8n \
+    my-n8n-custom execute-server
 ```
 Access at `http://localhost:5678`.
 
-## ☁️ Production Deployment (Google Cloud)
+## ☁️ Infrastructure as Code (Terraform)
 
-### 1. Build & Push Image
+This project uses Terraform to provision the entire Google Cloud infrastructure.
+
+### Resources Provisioned
+- **Artifact Registry**: `n8n-batch-repo` (Stores Base & App images)
+- **Secret Manager**: `n8n-workflow-credentials` (Stores `secrets.json`)
+- **Cloud Storage**: `[project-id]-n8n-config` (Stores `.env` file)
+- **Cloud Run Job**: `n8n-daily-tldr` (The batch processor)
+- **Cloud Scheduler**: Trigger `0 6 * * *` (Bangkok Time)
+- **IAM**: Service Account permissions (`logWriter`, `objectViewer`, `run.invoker`)
+
+### 1. Configuration
+Navigate to the terraform directory and copy the variables file:
 ```bash
-export PROJECT_ID=your-project-id
-docker build -t gcr.io/$PROJECT_ID/n8n-tldr:latest .
-docker push gcr.io/$PROJECT_ID/n8n-tldr:latest
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+```
+Edit `terraform.tfvars` with your project details:
+```hcl
+project_id            = "your-project-id"
+region                = "asia-southeast1"
+service_account_email = "your-sa@project.iam.gserviceaccount.com"
 ```
 
-### 2. Secrets Management (Critical)
-Since credentials are no longer baked into the image, you must mount them in Cloud Run.
-
-1. **Package Credentials**:
-   ```bash
-   # Create a secret containing your credential files
-   # (Alternatively, upload individual files if preferred)
-   gcloud secrets create n8n-credentials --replication-policy="automatic"
-   gcloud secrets versions add n8n-credentials --data-file=./credentials/secrets.json
-   ```
-
-2. **Deploy to Cloud Run Job**:
-   Deploy as a Job with the credentials mounted to `/opt/n8n/credentials`.
-
-   ```bash
-   gcloud run jobs create n8n-daily-tldr \
-     --image gcr.io/$PROJECT_ID/n8n-tldr:latest \
-     --region asia-southeast1 \
-     --set-env-vars N8N_ENCRYPTION_KEY=...,GEMINI_API_KEY=...,SUPABASE_URL=...,SUPABASE_KEY=...,SUPABASE_BUCKET_NAME=daily-tldr-reports \
-     --set-secrets /opt/n8n/credentials/secrets.json=n8n-credentials:latest \
-     --command "execute-daily" \
-     --max-retries 1 \
-     --task-timeout 15m
-   ```
-
-### 3. Schedule
+### 2. Deployment
 ```bash
-gcloud scheduler jobs create http n8n-daily-trigger \
-  --schedule "0 8 * * *" \
-  --time-zone "Asia/Bangkok" \
-  --uri "https://asia-southeast1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/$PROJECT_ID/jobs/n8n-daily-tldr:run" \
-  --http-method POST \
-  --oauth-service-account-email your-sa-email@...
+# Initialize Terraform
+terraform init
+
+# Preview changes
+terraform plan
+
+# Apply changes
+terraform apply
+```
+
+### 3. Post-Deployment Manual Steps
+Terraform creates the resources, but you must populate the data:
+
+1.  **Upload Credentials**:
+    ```bash
+    gcloud secrets versions add n8n-workflow-credentials --data-file=./credentials/secrets.json
+    ```
+2.  **Upload Environment Config**:
+    ```bash
+    gsutil cp .env gs://[YOUR-PROJECT-ID]-n8n-config/env_1
+    ```
+
+## ☁️ Production Deployment (CI/CD)
+
+Once infrastructure is up, deploying updates involves building images and updating the Cloud Run Job.
+
+### 1. Build & Push Base Image (Infrequent)
+```bash
+# Auth
+gcloud auth configure-docker asia-southeast1-docker.pkg.dev
+
+# Build & Push Base
+docker build --platform=linux/amd64 -t asia-southeast1-docker.pkg.dev/serious-hobbies/n8n-python-base/base:v1 -f dockerfile.base .
+docker push asia-southeast1-docker.pkg.dev/serious-hobbies/n8n-python-base/base:v1
+```
+
+### 2. Build & Push App Image
+```bash
+export PROJECT_ID=serious-hobbies
+export IMAGE_TAG=asia-southeast1-docker.pkg.dev/$PROJECT_ID/n8n-tldr/app:latest
+
+docker build --platform=linux/amd64 -t $IMAGE_TAG .
+docker push $IMAGE_TAG
+```
+
+### 3. Update Cloud Run Job
+```bash
+gcloud run jobs update n8n-daily-tldr \
+  --image asia-southeast1-docker.pkg.dev/$PROJECT_ID/n8n-tldr/app:latest \
+  --region asia-southeast1
 ```
 
 ## 🔒 Security Notes

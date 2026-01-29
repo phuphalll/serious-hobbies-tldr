@@ -114,9 +114,8 @@ resource "google_cloud_run_v2_job" "n8n_job" {
         # "set -a" automatically exports all variables in the sourced file
         command = ["/bin/sh", "-c"]
         args    = [
-          "if [ -f /mnt/gcs/env_1 ]; then echo 'Loading env_1 from GCS...'; set -a; . /mnt/gcs/env_1; set +a; fi;export TODAY_DATE=$(date +%Y-%m-%d);.echo \"📅 Job Date: $TODAY_DATE\";. /opt/n8n/docker-entrypoint.sh execute-daily"
+          "if [ -f /mnt/gcs/env_1 ]; then echo 'Loading env_1 from GCS...'; set -a; . /mnt/gcs/env_1; set +a; fi;export TODAY_DATE=$(date +%Y-%m-%d);echo \"📅 Job Date: $TODAY_DATE\";. /opt/n8n/docker-entrypoint.sh execute-daily"
         ]
-        
         # Ensure standard n8n encryption key is present if not in .env
         # It's safer to have this critical key in Secret Manager mapped to Env Var directly
         # env {
