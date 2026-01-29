@@ -3,7 +3,6 @@ set -e
 echo "🚀 n8n Container Starting..."
 # --- 1. GLOBAL CONTEXT INJECTION (Best Practice) ---
 # This sets the date for ALL modes (Server, Batch, Curl)
-# export TODAY_DATE=$(date +'%Y-%m-%d')
 echo "📅 System Context: Date set to $TODAY_DATE ($TZ)"
 pwd
 # --- 2. CREDENTIAL HYDRATION ---
