@@ -18,7 +18,7 @@ fi
 # --- 3. WORKFLOW PUBLISHING  ---
 # (You can list specific IDs here if needed, or rely on the DB volume)
 echo "📦 Public Workflows... ${1}";
-n8n publish:workflow  --id="3Tz9JuKqVmNhUsC5";
+n8n publish:workflow  --id=3Tz9JuKqVmNhUsC5;
 n8n publish:workflow  --id=aUoOlwBznCRes9YK;
 n8n publish:workflow  --id=IYRdfkLhYI1x2Ak6;
 n8n publish:workflow  --id=QdSzSZGJP2tKve8P;
